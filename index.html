@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>User Login & SMS Dashboard</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      padding: 20px;
+      background-color: #f9f9f9;
+      color: #333;
+    }
+
+    .container {
+      max-width: 500px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+    }
+
+    h2, h3 {
+      text-align: center;
+      color: #2a7ae2;
+    }
+
+    label {
+      font-weight: bold;
+      display: block;
+      margin-top: 12px;
+    }
+
+    input[type="text"],
+    input[type="password"],
+    textarea {
+      width: 100%;
+      padding: 10px;
+      margin-top: 6px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      box-sizing: border-box;
+    }
+
+    button {
+      margin-top: 20px;
+      width: 100%;
+      padding: 12px;
+      background-color: #2a7ae2;
+      color: white;
+      font-size: 16px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #145db2;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .info-box {
+      background: #f0f8ff;
+      padding: 10px;
+      margin-top: 10px;
+      border-left: 4px solid #2a7ae2;
+    }
+
+    .error {
+      color: red;
+      margin-top: 10px;
+      text-align: center;
+    }
+
+    .success {
+      color: green;
+      margin-top: 10px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>USER LOGIN</h2>
+    <div id="loginDiv">
+      <label>National ID:</label>
+      <input type="text" id="nationalID" placeholder="Enter your National ID" />
+
+      <label>Password:</label>
+      <input type="password" id="userPassword" placeholder="Enter password" />
+
+      <button onclick="login()">Login</button>
+      <p id="loginError" class="error"></p>
+    </div>
+
+    <div id="dashboard" class="hidden">
+      <h3>Welcome, <span id="userName" style="color: red;"></span></h3>
+
+      <div class="info-box">
+        <p><strong>National ID:</strong> <span id="userID"></span></p>
+        <p><strong>Credits:</strong> <span id="userCredits"></span></p>
+        <p><strong>Number of Contacts:</strong> <span id="contactCount"></span></p>
+      </div>
+
+      <label>Enter Message (Max 160 characters):</label>
+      <textarea id="smsMessage" rows="4" maxlength="160" placeholder="Type your SMS here..."></textarea>
+
+      <button onclick="sendSms()">Send Bulk SMS to All Contacts</button>
+      <p id="sendStatus" class="success"></p>
+    </div>
+  </div>
+
+  <script>
+    const backendUrl = 'https://script.google.com/macros/s/AKfycbzmjdaz123Rzhvuf_kVrEhbnd93LTOfPASvFDrhCXtXVCGyb_CwmKjTpi84TX4Kg65e/exec';
+
+    let currentID = "";
+
+    async function login() {
+      const nationalID = document.getElementById("nationalID").value.trim();
+      const password = document.getElementById("userPassword").value.trim();
+      const loginError = document.getElementById("loginError");
+      const sendStatus = document.getElementById("sendStatus");
+      loginError.innerText = "";
+      sendStatus.innerText = "";
+
+      if (!nationalID || !password) {
+        loginError.innerText = "Please enter both fields.";
+        return;
+      }
+
+      try {
+        const params = new URLSearchParams({
+          action: 'getUserData',
+          nationalId: nationalID,
+          password: password
+        });
+        const response = await fetch(`${backendUrl}?${params.toString()}`, {
+          method: 'GET',
+          mode: 'cors',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        const data = await response.json();
+
+        if (data.error) {
+          loginError.innerText = data.error;
+          return;
+        }
+
+        currentID = data.nationalId;
+        document.getElementById("loginDiv").classList.add("hidden");
+        document.getElementById("dashboard").classList.remove("hidden");
+
+        document.getElementById("userName").innerText = data.name;
+        document.getElementById("userID").innerText = data.nationalId;
+        document.getElementById("userCredits").innerText = data.credits;
+        document.getElementById("contactCount").innerText = data.contactCount;
+
+      } catch (err) {
+        loginError.innerText = "Failed to connect to server.";
+        console.error(err);
+      }
+    }
+
+    async function sendSms() {
+      const message = document.getElementById("smsMessage").value.trim();
+      const sendStatus = document.getElementById("sendStatus");
+      sendStatus.innerText = "";
+      sendStatus.className = "";
+
+      if (!message) {
+        sendStatus.className = "error";
+        sendStatus.innerText = "Please enter a message.";
+        return;
+      }
+
+      if (message.length > 160) {
+        sendStatus.className = "error";
+        sendStatus.innerText = "Message must be 160 characters or fewer.";
+        return;
+      }
+
+      sendStatus.innerText = "Sending SMS... Please wait.";
+
+      try {
+        const response = await fetch(backendUrl, {
+          method: 'POST',
+          mode: 'cors',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            action: 'sendSmsToContacts',
+            nationalId: currentID,
+            messageText: message
+          })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          sendStatus.className = "success";
+          sendStatus.innerText = result.msg;
+
+          if (typeof result.newCredits !== "undefined") {
+            document.getElementById("userCredits").innerText = result.newCredits;
+          }
+
+          document.getElementById("smsMessage").value = "";
+        } else {
+          sendStatus.className = "error";
+          sendStatus.innerText = result.msg;
+        }
+      } catch (err) {
+        sendStatus.className = "error";
+        sendStatus.innerText = "Failed to send SMS.";
+        console.error(err);
+      }
+    }
+  </script>
+</body>
+</html>
