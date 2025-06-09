@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>User Login & SMS Dashboard</title>
+  <title>User Login - SMS Sender</title>
   <style>
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -11,7 +11,6 @@
       background-color: #f9f9f9;
       color: #333;
     }
-
     .container {
       max-width: 500px;
       margin: auto;
@@ -20,18 +19,15 @@
       border-radius: 10px;
       box-shadow: 0 0 15px rgba(0,0,0,0.1);
     }
-
     h2, h3 {
       text-align: center;
       color: #2a7ae2;
     }
-
     label {
       font-weight: bold;
       display: block;
       margin-top: 12px;
     }
-
     input[type="text"],
     input[type="password"],
     textarea {
@@ -42,7 +38,6 @@
       border-radius: 5px;
       box-sizing: border-box;
     }
-
     button {
       margin-top: 20px;
       width: 100%;
@@ -54,28 +49,23 @@
       border-radius: 5px;
       cursor: pointer;
     }
-
     button:hover {
       background-color: #145db2;
     }
-
     .hidden {
       display: none;
     }
-
     .info-box {
       background: #f0f8ff;
       padding: 10px;
       margin-top: 10px;
       border-left: 4px solid #2a7ae2;
     }
-
     .error {
       color: red;
       margin-top: 10px;
       text-align: center;
     }
-
     .success {
       color: green;
       margin-top: 10px;
@@ -93,7 +83,7 @@
       <label>Password:</label>
       <input type="password" id="userPassword" placeholder="Enter password" />
 
-      <button onclick="login()">Login</button>
+      <button id="loginBtn">Login</button>
       <p id="loginError" class="error"></p>
     </div>
 
@@ -109,46 +99,81 @@
       <label>Enter Message (Max 160 characters):</label>
       <textarea id="smsMessage" rows="4" maxlength="160" placeholder="Type your SMS here..."></textarea>
 
-      <button onclick="sendSms()">Send Bulk SMS to All Contacts</button>
+      <button id="sendSmsBtn">Send Bulk SMS to All Contacts</button>
       <p id="sendStatus" class="success"></p>
     </div>
   </div>
 
   <script>
-    const backendUrl = 'https://script.google.com/macros/s/AKfycbzmjdaz123Rzhvuf_kVrEhbnd93LTOfPASvFDrhCXtXVCGyb_CwmKjTpi84TX4Kg65e/exec';
+    // Replace this with your actual Apps Script web app URL
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzmjdaz123Rzhvuf_kVrEhbnd93LTOfPASvFDrhCXtXVCGyb_CwmKjTpi84TX4Kg65e/exec";
 
     let currentID = "";
 
+    // Utility: Call Google Apps Script doGet with function name & params via fetch
+    async function callAppsScript(functionName, params) {
+      // Prepare GET params
+      const url = new URL(APPS_SCRIPT_URL);
+      url.searchParams.append("func", functionName);
+      Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
+
+      try {
+        const response = await fetch(url.toString());
+        if (!response.ok) throw new Error("Network response not ok");
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        return { error: error.message || "Fetch error" };
+      }
+    }
+
+    // We will use a workaround: since your Apps Script backend does not support CORS by default,
+    // we need to call the functions via google.script.run alternative in Apps Script.
+    // But for Github Pages, we must call the web app REST endpoints directly.
+
+    // Since your Apps Script code does not have REST endpoints, 
+    // we will directly call your existing endpoints using POST fetch calls (adjust your Apps Script if needed).
+    // But because your Apps Script only exposes doGet, and your calls expect google.script.run,
+    // let's instead call your backend using direct POST to your endpoint with JSON payload.
+
+    // So: We will do the following to call your backend:
+    // - login: POST with {nationalId, password} -> returns user data or error
+    // - sendSms: POST with {nationalId, messageText} -> returns success/error
+
+    // Because your Apps Script does not currently support this, you will need to add doPost handler in your script.
+    // But as per your request "do nothing to code.gs," we can only do client-side fetch to the web app URL.
+
+    // Instead, I will give you the official way to do it for GitHub Pages:
+    // We will do calls directly to your Apps Script web app using URL fetch with GET params
+    // You need to deploy your Apps Script as "Anyone, even anonymous" to allow calls.
+
+    // Let's implement client-side fetch calls for your existing functions with parameters:
+
+    // Function to login by calling the getUserData function in Apps Script
     async function login() {
       const nationalID = document.getElementById("nationalID").value.trim();
       const password = document.getElementById("userPassword").value.trim();
-      const loginError = document.getElementById("loginError");
-      const sendStatus = document.getElementById("sendStatus");
-      loginError.innerText = "";
-      sendStatus.innerText = "";
+      document.getElementById("loginError").innerText = "";
+      document.getElementById("sendStatus").innerText = "";
 
       if (!nationalID || !password) {
-        loginError.innerText = "Please enter both fields.";
+        document.getElementById("loginError").innerText = "Please enter both fields.";
         return;
       }
 
       try {
-        const params = new URLSearchParams({
-          action: 'getUserData',
-          nationalId: nationalID,
-          password: password
-        });
-        const response = await fetch(`${backendUrl}?${params.toString()}`, {
-          method: 'GET',
-          mode: 'cors',
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
+        const url = new URL(APPS_SCRIPT_URL);
+        url.searchParams.append("func", "getUserData");
+        url.searchParams.append("nationalId", nationalID);
+        url.searchParams.append("password", password);
+
+        const response = await fetch(url.toString());
+        if (!response.ok) throw new Error("Failed to fetch");
+
         const data = await response.json();
 
         if (data.error) {
-          loginError.innerText = data.error;
+          document.getElementById("loginError").innerText = data.error;
           return;
         }
 
@@ -160,68 +185,70 @@
         document.getElementById("userID").innerText = data.nationalId;
         document.getElementById("userCredits").innerText = data.credits;
         document.getElementById("contactCount").innerText = data.contactCount;
-
       } catch (err) {
-        loginError.innerText = "Failed to connect to server.";
-        console.error(err);
+        document.getElementById("loginError").innerText = "Error logging in: " + err.message;
       }
     }
 
+    // Function to send SMS
     async function sendSms() {
       const message = document.getElementById("smsMessage").value.trim();
-      const sendStatus = document.getElementById("sendStatus");
-      sendStatus.innerText = "";
-      sendStatus.className = "";
+      document.getElementById("sendStatus").innerText = "";
+      document.getElementById("sendStatus").className = "";
 
       if (!message) {
-        sendStatus.className = "error";
-        sendStatus.innerText = "Please enter a message.";
+        document.getElementById("sendStatus").className = "error";
+        document.getElementById("sendStatus").innerText = "Please enter a message.";
         return;
       }
 
       if (message.length > 160) {
-        sendStatus.className = "error";
-        sendStatus.innerText = "Message must be 160 characters or fewer.";
+        document.getElementById("sendStatus").className = "error";
+        document.getElementById("sendStatus").innerText = "Message must be 160 characters or fewer.";
         return;
       }
 
-      sendStatus.innerText = "Sending SMS... Please wait.";
+      if (!currentID) {
+        document.getElementById("sendStatus").className = "error";
+        document.getElementById("sendStatus").innerText = "You must be logged in.";
+        return;
+      }
 
       try {
-        const response = await fetch(backendUrl, {
-          method: 'POST',
-          mode: 'cors',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            action: 'sendSmsToContacts',
-            nationalId: currentID,
-            messageText: message
-          })
-        });
+        const url = new URL(APPS_SCRIPT_URL);
+        url.searchParams.append("func", "sendSmsToContacts");
+        url.searchParams.append("nationalId", currentID);
+        url.searchParams.append("messageText", message);
 
-        const result = await response.json();
+        const response = await fetch(url.toString());
+        if (!response.ok) throw new Error("Failed to send SMS");
 
-        if (result.success) {
-          sendStatus.className = "success";
-          sendStatus.innerText = result.msg;
+        const data = await response.json();
 
-          if (typeof result.newCredits !== "undefined") {
-            document.getElementById("userCredits").innerText = result.newCredits;
-          }
-
-          document.getElementById("smsMessage").value = "";
+        if (data.error) {
+          document.getElementById("sendStatus").className = "error";
+          document.getElementById("sendStatus").innerText = data.error;
         } else {
-          sendStatus.className = "error";
-          sendStatus.innerText = result.msg;
+          document.getElementById("sendStatus").className = "success";
+          document.getElementById("sendStatus").innerText = "SMS sent successfully!";
+          document.getElementById("smsMessage").value = "";
         }
       } catch (err) {
-        sendStatus.className = "error";
-        sendStatus.innerText = "Failed to send SMS.";
-        console.error(err);
+        document.getElementById("sendStatus").className = "error";
+        document.getElementById("sendStatus").innerText = "Error sending SMS: " + err.message;
       }
     }
+
+    // Attach event listeners
+    document.getElementById("loginBtn").addEventListener("click", login);
+    document.getElementById("sendSmsBtn").addEventListener("click", sendSms);
+
+    // Optional: Press Enter to login
+    document.getElementById("userPassword").addEventListener("keypress", function(e) {
+      if (e.key === 'Enter') login();
+    });
+
   </script>
 </body>
 </html>
+
