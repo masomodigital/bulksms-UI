@@ -5,71 +5,164 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>User Login - SMS Sender</title>
   <style>
+    /* Reset some defaults */
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       padding: 20px;
-      background-color: #f9f9f9;
+      background: linear-gradient(135deg, #6aabe4, #a7d8f5);
       color: #333;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0;
     }
+
     .container {
       max-width: 500px;
-      margin: auto;
+      width: 100%;
       background: white;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 0 15px rgba(0,0,0,0.1);
-    }
-    h2, h3 {
+      padding: 30px 30px 40px;
+      border-radius: 15px;
+      box-shadow:
+        0 8px 24px rgba(42, 122, 226, 0.2),
+        0 4px 12px rgba(42, 122, 226, 0.15);
       text-align: center;
+      transition: box-shadow 0.3s ease;
+    }
+    .container:hover {
+      box-shadow:
+        0 12px 36px rgba(42, 122, 226, 0.3),
+        0 6px 18px rgba(42, 122, 226, 0.25);
+    }
+
+    h2, h3 {
       color: #2a7ae2;
+      margin-bottom: 20px;
+      font-weight: 700;
+      letter-spacing: 1.2px;
     }
+
     label {
-      font-weight: bold;
+      font-weight: 700;
       display: block;
-      margin-top: 12px;
+      text-align: left;
+      margin-top: 18px;
+      font-size: 1rem;
+      color: #0c2e69;
+      user-select: none;
     }
+
     input[type="text"],
     input[type="password"],
     textarea {
       width: 100%;
-      padding: 10px;
+      padding: 12px 15px;
       margin-top: 6px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      box-sizing: border-box;
+      border: 2px solid #c4d9f8;
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: border-color 0.3s ease;
+      font-family: inherit;
+      resize: vertical;
     }
+
+    input[type="text"]:focus,
+    input[type="password"]:focus,
+    textarea:focus {
+      border-color: #2a7ae2;
+      outline: none;
+      box-shadow: 0 0 8px #7ab2f5;
+    }
+
     button {
-      margin-top: 20px;
+      margin-top: 28px;
       width: 100%;
-      padding: 12px;
+      padding: 14px 0;
       background-color: #2a7ae2;
       color: white;
-      font-size: 16px;
+      font-size: 1.1rem;
+      font-weight: 700;
       border: none;
-      border-radius: 5px;
+      border-radius: 10px;
       cursor: pointer;
+      box-shadow: 0 4px 12px rgba(42, 122, 226, 0.4);
+      transition: background-color 0.3s ease;
+      user-select: none;
     }
+
     button:hover {
       background-color: #145db2;
     }
+
     .hidden {
       display: none;
     }
+
     .info-box {
       background: #f0f8ff;
-      padding: 10px;
-      margin-top: 10px;
-      border-left: 4px solid #2a7ae2;
+      padding: 15px 20px;
+      margin-top: 20px;
+      border-left: 6px solid #2a7ae2;
+      text-align: left;
+      border-radius: 8px;
+      font-size: 1rem;
+      color: #0c2e69;
+      line-height: 1.5;
+      user-select: none;
     }
+
+    .error, .success {
+      margin-top: 15px;
+      font-weight: 700;
+      user-select: none;
+    }
+
     .error {
-      color: red;
-      margin-top: 10px;
+      color: #d93025;
       text-align: center;
     }
+
     .success {
-      color: green;
-      margin-top: 10px;
+      color: #188038;
       text-align: center;
+    }
+
+    /* Responsive tweaks */
+    @media (max-width: 480px) {
+      body {
+        padding: 15px;
+      }
+
+      .container {
+        padding: 25px 20px 30px;
+        border-radius: 12px;
+      }
+
+      label {
+        font-size: 0.95rem;
+      }
+
+      input[type="text"],
+      input[type="password"],
+      textarea {
+        font-size: 0.95rem;
+        padding: 10px 12px;
+      }
+
+      button {
+        font-size: 1rem;
+        padding: 12px 0;
+      }
+
+      .info-box {
+        font-size: 0.9rem;
+        padding: 12px 15px;
+      }
     }
   </style>
 </head>
@@ -105,14 +198,12 @@
   </div>
 
   <script>
-    // Replace this with your actual Apps Script web app URL
+    // Your original JavaScript unchanged
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzmjdaz123Rzhvuf_kVrEhbnd93LTOfPASvFDrhCXtXVCGyb_CwmKjTpi84TX4Kg65e/exec";
 
     let currentID = "";
 
-    // Utility: Call Google Apps Script doGet with function name & params via fetch
     async function callAppsScript(functionName, params) {
-      // Prepare GET params
       const url = new URL(APPS_SCRIPT_URL);
       url.searchParams.append("func", functionName);
       Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
@@ -127,29 +218,6 @@
       }
     }
 
-    // We will use a workaround: since your Apps Script backend does not support CORS by default,
-    // we need to call the functions via google.script.run alternative in Apps Script.
-    // But for Github Pages, we must call the web app REST endpoints directly.
-
-    // Since your Apps Script code does not have REST endpoints, 
-    // we will directly call your existing endpoints using POST fetch calls (adjust your Apps Script if needed).
-    // But because your Apps Script only exposes doGet, and your calls expect google.script.run,
-    // let's instead call your backend using direct POST to your endpoint with JSON payload.
-
-    // So: We will do the following to call your backend:
-    // - login: POST with {nationalId, password} -> returns user data or error
-    // - sendSms: POST with {nationalId, messageText} -> returns success/error
-
-    // Because your Apps Script does not currently support this, you will need to add doPost handler in your script.
-    // But as per your request "do nothing to code.gs," we can only do client-side fetch to the web app URL.
-
-    // Instead, I will give you the official way to do it for GitHub Pages:
-    // We will do calls directly to your Apps Script web app using URL fetch with GET params
-    // You need to deploy your Apps Script as "Anyone, even anonymous" to allow calls.
-
-    // Let's implement client-side fetch calls for your existing functions with parameters:
-
-    // Function to login by calling the getUserData function in Apps Script
     async function login() {
       const nationalID = document.getElementById("nationalID").value.trim();
       const password = document.getElementById("userPassword").value.trim();
@@ -190,7 +258,6 @@
       }
     }
 
-    // Function to send SMS
     async function sendSms() {
       const message = document.getElementById("smsMessage").value.trim();
       document.getElementById("sendStatus").innerText = "";
@@ -239,16 +306,12 @@
       }
     }
 
-    // Attach event listeners
     document.getElementById("loginBtn").addEventListener("click", login);
     document.getElementById("sendSmsBtn").addEventListener("click", sendSms);
 
-    // Optional: Press Enter to login
     document.getElementById("userPassword").addEventListener("keypress", function(e) {
       if (e.key === 'Enter') login();
     });
-
   </script>
 </body>
 </html>
-
