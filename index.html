@@ -135,6 +135,14 @@
       color: #0c2e69; /* neutral/blue-ish for "Please wait..." */
     }
 
+    /* Custom style for login wait message */
+    .login-wait {
+        color: green; /* Green color for "Wait please..." */
+        font-weight: bold; /* Bold text for "Wait please..." */
+        margin-top: 15px; /* Consistent with other messages */
+        text-align: center;
+    }
+
     /* Responsive tweaks */
     @media (max-width: 480px) {
       body {
@@ -181,6 +189,7 @@
 
       <button id="loginBtn" type="button">Login</button>
       <p id="loginError" class="error"></p>
+      <p id="loginWait" class="login-wait hidden"></p>
     </div>
 
     <div id="dashboard" class="hidden">
@@ -209,16 +218,25 @@
       const nationalID = document.getElementById("nationalID").value.trim();
       const password = document.getElementById("userPassword").value.trim();
       const loginError = document.getElementById("loginError");
-      const sendStatus = document.getElementById("sendStatus"); // Clear sendStatus as well
+      const sendStatus = document.getElementById("sendStatus");
+      const loginWait = document.getElementById("loginWait"); // Get the new element
 
       loginError.innerText = "";
+      loginError.classList.add("hidden"); // Ensure error is hidden
       sendStatus.innerText = "";
-      sendStatus.className = ""; // Clear any previous status class
+      sendStatus.className = "";
+      loginWait.innerText = ""; // Clear any previous wait message
+      loginWait.classList.add("hidden"); // Hide it initially
 
       if (!nationalID || !password) {
         loginError.innerText = "Please enter both fields.";
+        loginError.classList.remove("hidden"); // Show error message
         return;
       }
+
+      // Display "Wait please..." message before fetch
+      loginWait.innerText = "Wait please...";
+      loginWait.classList.remove("hidden"); // Show the wait message
 
       try {
         const url = new URL(APPS_SCRIPT_URL);
@@ -227,12 +245,17 @@
         url.searchParams.append("password", password);
 
         const response = await fetch(url.toString());
+
+        // Hide "Wait please..." once response is received
+        loginWait.classList.add("hidden");
+
         if (!response.ok) throw new Error("Failed to fetch user data (network error or server issues).");
 
         const data = await response.json();
 
         if (data.error) {
           loginError.innerText = data.error;
+          loginError.classList.remove("hidden"); // Show error message
           return;
         }
 
@@ -245,7 +268,10 @@
         document.getElementById("userCredits").innerText = data.credits;
         document.getElementById("contactCount").innerText = data.contactCount;
       } catch (err) {
+        // Hide "Wait please..." on error
+        loginWait.classList.add("hidden");
         loginError.innerText = "Error logging in: " + err.message;
+        loginError.classList.remove("hidden"); // Show error message
       }
     }
 
@@ -293,6 +319,7 @@
         url.searchParams.append("messageText", message);
 
         const response = await fetch(url.toString());
+
         if (!response.ok) throw new Error("Failed to send SMS (network error or server issues).");
 
         const data = await response.json();
