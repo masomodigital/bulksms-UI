@@ -250,56 +250,66 @@
     }
 
     async function sendSms() {
-      const message = document.getElementById("smsMessage").value.trim();
-      const sendStatus = document.getElementById("sendStatus");
-      sendStatus.innerText = "";
-      sendStatus.className = "";
+  const message = document.getElementById("smsMessage").value.trim();
+  document.getElementById("sendStatus").innerText = "";
+  document.getElementById("sendStatus").className = "";
 
-      if (message.length < 1) {
-        sendStatus.className = "error";
-        sendStatus.innerText = "Error: SMS message cannot be empty.";
-        return;
-      }
+  if (!message) {
+    document.getElementById("sendStatus").className = "error";
+    document.getElementById("sendStatus").innerText = "Please enter a message.";
+    return;
+  }
 
-      if (message.length > 160) {
-        sendStatus.className = "error";
-        sendStatus.innerText = "Message must be 160 characters or fewer.";
-        return;
-      }
+  if (message.length > 160) {
+    document.getElementById("sendStatus").className = "error";
+    document.getElementById("sendStatus").innerText = "Message must be 160 characters or fewer.";
+    return;
+  }
 
-      if (!currentID) {
-        sendStatus.className = "error";
-        sendStatus.innerText = "You must be logged in.";
-        return;
-      }
+  if (!currentID) {
+    document.getElementById("sendStatus").className = "error";
+    document.getElementById("sendStatus").innerText = "You must be logged in.";
+    return;
+  }
 
-      sendStatus.className = "info";
-      sendStatus.innerText = "Please wait...";
+  // New check for credits
+  const credits = parseInt(document.getElementById("userCredits").innerText, 10);
+  if (isNaN(credits) || credits <= 0) {
+    document.getElementById("sendStatus").className = "error";
+    document.getElementById("sendStatus").innerText = "You have no credits left to send SMS.";
+    return;
+  }
 
-      try {
-        const url = new URL(APPS_SCRIPT_URL);
-        url.searchParams.append("func", "sendSmsToContacts");
-        url.searchParams.append("nationalId", currentID);
-        url.searchParams.append("messageText", message);
+  try {
+    const url = new URL(APPS_SCRIPT_URL);
+    url.searchParams.append("func", "sendSmsToContacts");
+    url.searchParams.append("nationalId", currentID);
+    url.searchParams.append("messageText", message);
 
-        const response = await fetch(url.toString());
-        if (!response.ok) throw new Error("Failed to send SMS");
+    const response = await fetch(url.toString());
+    if (!response.ok) throw new Error("Failed to send SMS");
 
-        const data = await response.json();
+    const data = await response.json();
 
-        if (data.error) {
-          sendStatus.className = "error";
-          sendStatus.innerText = data.error;
-        } else {
-          sendStatus.className = "success";
-          sendStatus.innerText = "SMS sent successfully!";
-          document.getElementById("smsMessage").value = "";
-        }
-      } catch (err) {
-        sendStatus.className = "error";
-        sendStatus.innerText = "Error sending SMS: " + err.message;
+    if (data.error) {
+      document.getElementById("sendStatus").className = "error";
+      document.getElementById("sendStatus").innerText = data.error;
+    } else {
+      document.getElementById("sendStatus").className = "success";
+      document.getElementById("sendStatus").innerText = "SMS sent successfully!";
+      document.getElementById("smsMessage").value = "";
+
+      // Optionally update credits if returned by server
+      if (data.credits !== undefined) {
+        document.getElementById("userCredits").innerText = data.credits;
       }
     }
+  } catch (err) {
+    document.getElementById("sendStatus").className = "error";
+    document.getElementById("sendStatus").innerText = "Error sending SMS: " + err.message;
+  }
+}
+
 
     document.getElementById("loginBtn").addEventListener("click", login);
     document.getElementById("sendSmsBtn").addEventListener("click", sendSms);
