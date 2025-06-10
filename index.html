@@ -116,20 +116,23 @@
       user-select: none;
     }
 
-    .error, .success {
+    .error, .success, .info {
       margin-top: 15px;
       font-weight: 700;
       user-select: none;
+      text-align: center;
     }
 
     .error {
       color: #d93025;
-      text-align: center;
     }
 
     .success {
       color: #188038;
-      text-align: center;
+    }
+
+    .info {
+      color: #0c2e69; /* neutral/blue-ish for "Please wait..." */
     }
 
     /* Responsive tweaks */
@@ -193,39 +196,27 @@
       <textarea id="smsMessage" rows="4" maxlength="160" placeholder="Type your SMS here..."></textarea>
 
       <button id="sendSmsBtn" type="button">Send Bulk SMS to All Contacts</button>
-      <p id="sendStatus" class="success"></p>
+      <p id="sendStatus"></p>
     </div>
   </div>
 
   <script>
-    // Your original JavaScript unchanged
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzmjdaz123Rzhvuf_kVrEhbnd93LTOfPASvFDrhCXtXVCGyb_CwmKjTpi84TX4Kg65e/exec";
 
     let currentID = "";
 
-    async function callAppsScript(functionName, params) {
-      const url = new URL(APPS_SCRIPT_URL);
-      url.searchParams.append("func", functionName);
-      Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
-
-      try {
-        const response = await fetch(url.toString());
-        if (!response.ok) throw new Error("Network response not ok");
-        const data = await response.json();
-        return data;
-      } catch (error) {
-        return { error: error.message || "Fetch error" };
-      }
-    }
-
     async function login() {
       const nationalID = document.getElementById("nationalID").value.trim();
       const password = document.getElementById("userPassword").value.trim();
-      document.getElementById("loginError").innerText = "";
-      document.getElementById("sendStatus").innerText = "";
+      const loginError = document.getElementById("loginError");
+      const sendStatus = document.getElementById("sendStatus");
+
+      loginError.innerText = "";
+      sendStatus.innerText = "";
+      sendStatus.className = "";
 
       if (!nationalID || !password) {
-        document.getElementById("loginError").innerText = "Please enter both fields.";
+        loginError.innerText = "Please enter both fields.";
         return;
       }
 
@@ -241,7 +232,7 @@
         const data = await response.json();
 
         if (data.error) {
-          document.getElementById("loginError").innerText = data.error;
+          loginError.innerText = data.error;
           return;
         }
 
@@ -254,32 +245,36 @@
         document.getElementById("userCredits").innerText = data.credits;
         document.getElementById("contactCount").innerText = data.contactCount;
       } catch (err) {
-        document.getElementById("loginError").innerText = "Error logging in: " + err.message;
+        loginError.innerText = "Error logging in: " + err.message;
       }
     }
 
     async function sendSms() {
       const message = document.getElementById("smsMessage").value.trim();
-      document.getElementById("sendStatus").innerText = "";
-      document.getElementById("sendStatus").className = "";
+      const sendStatus = document.getElementById("sendStatus");
+      sendStatus.innerText = "";
+      sendStatus.className = "";
 
-      if (!message) {
-        document.getElementById("sendStatus").className = "error";
-        document.getElementById("sendStatus").innerText = "Please enter a message.";
+      if (message.length < 1) {
+        sendStatus.className = "error";
+        sendStatus.innerText = "Error: SMS message cannot be empty.";
         return;
       }
 
       if (message.length > 160) {
-        document.getElementById("sendStatus").className = "error";
-        document.getElementById("sendStatus").innerText = "Message must be 160 characters or fewer.";
+        sendStatus.className = "error";
+        sendStatus.innerText = "Message must be 160 characters or fewer.";
         return;
       }
 
       if (!currentID) {
-        document.getElementById("sendStatus").className = "error";
-        document.getElementById("sendStatus").innerText = "You must be logged in.";
+        sendStatus.className = "error";
+        sendStatus.innerText = "You must be logged in.";
         return;
       }
+
+      sendStatus.className = "info";
+      sendStatus.innerText = "Please wait...";
 
       try {
         const url = new URL(APPS_SCRIPT_URL);
@@ -293,16 +288,16 @@
         const data = await response.json();
 
         if (data.error) {
-          document.getElementById("sendStatus").className = "error";
-          document.getElementById("sendStatus").innerText = data.error;
+          sendStatus.className = "error";
+          sendStatus.innerText = data.error;
         } else {
-          document.getElementById("sendStatus").className = "success";
-          document.getElementById("sendStatus").innerText = "SMS sent successfully!";
+          sendStatus.className = "success";
+          sendStatus.innerText = "SMS sent successfully!";
           document.getElementById("smsMessage").value = "";
         }
       } catch (err) {
-        document.getElementById("sendStatus").className = "error";
-        document.getElementById("sendStatus").innerText = "Error sending SMS: " + err.message;
+        sendStatus.className = "error";
+        sendStatus.innerText = "Error sending SMS: " + err.message;
       }
     }
 
