@@ -170,13 +170,13 @@
   <div class="container">
     <h2>USER LOGIN</h2>
     <div id="loginDiv">
-      <label>National ID:</label>
+      <label for="nationalID">National ID:</label>
       <input type="text" id="nationalID" placeholder="Enter your National ID" />
 
-      <label>Password:</label>
+      <label for="userPassword">Password:</label>
       <input type="password" id="userPassword" placeholder="Enter password" />
 
-      <button id="loginBtn">Login</button>
+      <button id="loginBtn" type="button">Login</button>
       <p id="loginError" class="error"></p>
     </div>
 
@@ -189,17 +189,16 @@
         <p><strong>Number of Contacts:</strong> <span id="contactCount"></span></p>
       </div>
 
-      <label>Enter Message (Max 160 characters):</label>
+      <label for="smsMessage">Enter Message (Max 160 characters):</label>
       <textarea id="smsMessage" rows="4" maxlength="160" placeholder="Type your SMS here..."></textarea>
 
-      <button id="sendSmsBtn">Send Bulk SMS to All Contacts</button>
-      <p id="sendStatus"></p>
+      <button id="sendSmsBtn" type="button">Send Bulk SMS to All Contacts</button>
+      <p id="sendStatus" class="success"></p>
     </div>
   </div>
 
   <script>
-    // Your original JavaScript unchanged except added "Wait please..." and improved messages
-
+    // Your original JavaScript unchanged
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzmjdaz123Rzhvuf_kVrEhbnd93LTOfPASvFDrhCXtXVCGyb_CwmKjTpi84TX4Kg65e/exec";
 
     let currentID = "";
@@ -261,54 +260,58 @@
 
     async function sendSms() {
       const message = document.getElementById("smsMessage").value.trim();
-      const sendStatusEl = document.getElementById("sendStatus");
-      sendStatusEl.innerText = "";
-      sendStatusEl.className = "";
+      document.getElementById("sendStatus").innerText = "";
+      document.getElementById("sendStatus").className = "";
 
       if (!message) {
-        sendStatusEl.className = "error";
-        sendStatusEl.innerText = "Please enter a message.";
+        document.getElementById("sendStatus").className = "error";
+        document.getElementById("sendStatus").innerText = "Please enter a message.";
         return;
       }
 
       if (message.length > 160) {
-        sendStatusEl.className = "error";
-        sendStatusEl.innerText = "Message must be 160 characters or fewer.";
+        document.getElementById("sendStatus").className = "error";
+        document.getElementById("sendStatus").innerText = "Message must be 160 characters or fewer.";
         return;
       }
 
       if (!currentID) {
-        sendStatusEl.className = "error";
-        sendStatusEl.innerText = "You must be logged in.";
+        document.getElementById("sendStatus").className = "error";
+        document.getElementById("sendStatus").innerText = "You must be logged in.";
         return;
       }
 
       try {
-        sendStatusEl.className = "";
-        sendStatusEl.innerText = "Wait please....";
+        const url = new URL(APPS_SCRIPT_URL);
+        url.searchParams.append("func", "sendSmsToContacts");
+        url.searchParams.append("nationalId", currentID);
+        url.searchParams.append("messageText", message);
 
-        const result = await callAppsScript("sendSmsToContacts", {
-          nationalId: currentID,
-          message: message
-        });
+        const response = await fetch(url.toString());
+        if (!response.ok) throw new Error("Failed to send SMS");
 
-        if (result && result.success) {
-          sendStatusEl.className = "success";
-          sendStatusEl.innerText = "Message sent successfully.";
-          // Optionally you can clear the message box after success:
-          // document.getElementById("smsMessage").value = "";
+        const data = await response.json();
+
+        if (data.error) {
+          document.getElementById("sendStatus").className = "error";
+          document.getElementById("sendStatus").innerText = data.error;
         } else {
-          sendStatusEl.className = "error";
-          sendStatusEl.innerText = result.error || "Failed to send message.";
+          document.getElementById("sendStatus").className = "success";
+          document.getElementById("sendStatus").innerText = "SMS sent successfully!";
+          document.getElementById("smsMessage").value = "";
         }
       } catch (err) {
-        sendStatusEl.className = "error";
-        sendStatusEl.innerText = "Error sending message: " + err.message;
+        document.getElementById("sendStatus").className = "error";
+        document.getElementById("sendStatus").innerText = "Error sending SMS: " + err.message;
       }
     }
 
     document.getElementById("loginBtn").addEventListener("click", login);
     document.getElementById("sendSmsBtn").addEventListener("click", sendSms);
+
+    document.getElementById("userPassword").addEventListener("keypress", function(e) {
+      if (e.key === 'Enter') login();
+    });
   </script>
 </body>
 </html>
