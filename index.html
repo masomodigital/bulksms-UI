@@ -142,6 +142,22 @@
         margin-top: 15px; /* Consistent with other messages */
         text-align: center;
     }
+    
+    /* Style for the forgotten password link */
+    .forgot-password-link {
+        text-align: center;
+        margin-top: 15px; /* Adds some space below the button */
+        font-size: 0.9em; /* Slightly smaller text */
+    }
+    .forgot-password-link a {
+        color: blue; /* Make the link text blue */
+        text-decoration: underline; /* Underline the link */
+        font-weight: bold; /* Make the link bold */
+    }
+    .forgot-password-link a:hover {
+        color: darkblue; /* Darken on hover */
+    }
+
 
     /* Responsive tweaks */
     @media (max-width: 480px) {
@@ -190,6 +206,7 @@
       <button id="loginBtn" type="button">Login</button>
       <p id="loginError" class="error"></p>
       <p id="loginWait" class="login-wait hidden"></p>
+      <p class="forgot-password-link">Have forgotten password? <a href="https://masomodigital.github.io/bulksms-update-password/" target="_blank">CLICK HERE</a> to reset your password.</p>
     </div>
 
     <div id="dashboard" class="hidden">
